@@ -39,7 +39,8 @@ draw_map(
             points_as=label(text="X", color="red"), 
             lines_as=line(color="green", width=5, popup="simple!"), 
             areas_as=area(color="yellow", border_color="black")), 
-)```
+)
+```
 
 Output:
 
