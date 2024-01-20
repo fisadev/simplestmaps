@@ -31,9 +31,11 @@ class Coords:
         elif hasattr(coords_source, "latitude_deg") and hasattr(coords_source, "longitude_deg"):
             # a few known classes that have latitude_deg longitude_deg attributes, like the
             # locations from the orbit-predictor lib
-            lat, lon = coords_source.latitude, coords_source.longitude
-        elif isinstance(coords_source, (tuple, list)) and len(coords_source) == 2:
-            lat, lon = coords_source
+            lat, lon = coords_source.latitude_deg, coords_source.longitude_deg
+        elif isinstance(coords_source, (tuple, list)) and len(coords_source) == 1:
+            return Coords.extract(coords_source[0])
+        elif isinstance(coords_source, (tuple, list)) and len(coords_source) in (2, 3):
+                lat, lon = coords_source[:2]
         else:
             raise ValueError(
                 f"Can't guess the latitude and longitude from this object: {repr(coords_source)}"
