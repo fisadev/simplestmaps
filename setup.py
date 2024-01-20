@@ -5,6 +5,7 @@ setup(
     version="1.0.0",
     description="Super simple on-liner maps in python.",
     long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
     author="Juan Pedro Fisanotti",
     author_email="fisadev@gmail.com",
     url="http://github.com/fisadev/simplestmaps",
