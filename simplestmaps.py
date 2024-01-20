@@ -72,6 +72,8 @@ def dot(*coords, color="blue", radius=3, opacity=1, border_color=None, border_wi
 
     if border_color is None:
         border_color = color
+    elif border_width == 0:
+        border_width = 2
 
     return Dot(Coords.extract(coords), color, radius, opacity, border_color, border_width, popup)
 
@@ -119,6 +121,8 @@ def area(coords_sequence=None, color="blue", opacity=0.5, border_color=None, bor
 
     if border_color is None:
         border_color = color
+    elif border_width == 0:
+        border_width = 2
 
     coords_sequence = [Coords.extract(coords) for coords in coords_sequence]
     return Area(coords_sequence, color, opacity, border_color, border_width, popup)
