@@ -1,4 +1,4 @@
-# Pending release
+# v1.3.0
 
 - Added suppport for shapely geometries out of the box!
 - Fix: custom coordinates objects was broken for coordinates sequences in the "_set" helpers.
