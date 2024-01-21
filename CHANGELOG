@@ -1,3 +1,7 @@
+# Pending release
+
+- Fix: custom coordinates objects was broken for coordinates sequences in the "_set" helpers.
+
 # v1.2.0
 
 - Added feature to automatically convert custom types of objects to coordinates or sequences of 

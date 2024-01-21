@@ -212,6 +212,12 @@ def pluralize(helper):
     """
     @wraps(helper)
     def plural_helper(sources, **kwargs):
+        if sources.__class__ in coords_converters:
+            # a custom type from which we need to extract the coordinates sequence
+            converter = coords_converters[sources.__class__]
+            sources = converter(sources)
+
+        # a sequence from which we need to extract each coordinate
         for source in sources:
             yield helper(source, **kwargs)
 
