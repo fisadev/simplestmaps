@@ -16,6 +16,9 @@ class Coords:
         self.lat = lat
         self.lon = lon
 
+    def __repr__(self):
+        return f"Coords({self.lat}, {self.lon})"
+
     @classmethod
     def extract(cls, coords_source):
         """
