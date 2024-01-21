@@ -214,7 +214,9 @@ def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
     - "cartodbpositron": white
     - "Stamen Terrain": terrain colors
     """
-    map_ = folium.Map(location=center, zoom_start=zoom, attr=".", tiles=tiles)
+    center = Coords.extract(center)
+
+    map_ = folium.Map(location=(center.lat, center.lon), zoom_start=zoom, attr=".", tiles=tiles)
 
     # consume all the things to display, and use inverted order so the user can easily understand
     # what's o top of what
