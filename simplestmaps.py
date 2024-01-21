@@ -208,8 +208,11 @@ geojson_set = pluralize(geojson)
 def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
     """
     Draw a simple map with elements on it. Good known working tiles with folium 0.14:
-    - "cartodbpositron": white
-    - "Stamen Terrain": terrain colors
+    - "cartodbpositron" (white maps)
+    - "OpenStreetMap"
+
+    More info on tiles:
+    https://python-visualization.github.io/folium/latest/user_guide/raster_layers/tiles.html
     """
     center = extract_coords(center)
 
