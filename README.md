@@ -27,16 +27,18 @@ It can even do more advanced stuff, like plotting the contents of a geojson file
 from simplestmaps import draw_map, geojson
 
 draw_map(
-    geojson("./demo.geojson"),
+    geojson("./readme_example.geojson"),
 )
 ```
 
 ![example map](./readme_example2.png)
 
-And every element plotted into the map is customizable (colors, fonts, sizes, etc).
+SimplestMaps can plot markers, dots, labels (text), custom html, lines, areas and geojsons, and all of that can be combined in every map.
+
+And every element plotted into the map is also customizable (colors, fonts, sizes, popups, etc).
+
+# More demos and docs
 
 Here are a good set of examples that showcase (and document) all of the supported features:
 
-# Demo and docs
-
-[See everything that's possible here! (TODO: pending link)](http://example.com)
+[See everything that's possible and with so little code! (TODO: pending link)](http://example.com)
