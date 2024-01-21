@@ -9,11 +9,19 @@ import folium
 
 Coords = namedtuple("Coords", "lat lon")
 
+# type -> converter function that receives instance of type and returns either a single (lat,lon)
+# tuple, or a sequence of (lat,lon) tuples
+coords_converters = {}
+
 
 def extract_coords(coords_source):
     """
     Extract lat lon coordinates from any possible known thing.
     """
+    if coords_source.__class__ in coords_converters:
+        # a custom type for which we have a converter registered, use it
+        converter = coords_converters[coords_source.__class__]
+        return extract_coords(converter(coords_source))
     if hasattr(coords_source, "lat") and hasattr(coords_source, "lon"):
         # a few known classes that have lat long attributes
         lat, lon = coords_source.lat, coords_source.lon
@@ -41,7 +49,21 @@ def extract_coords_sequence(coords_sequence):
     """
     Extract a sequence of lat lon coordinates from any possible known thing.
     """
+    if coords_sequence.__class__ in coords_converters:
+        # a custom type from which we need to extract the coordinates sequence
+        converter = coords_converters[coords_sequence.__class__]
+        coords_sequence = converter(coords_sequence)
+
+    # a sequence from which we need to extract each coordinate
     return [extract_coords(coords) for coords in coords_sequence]
+
+
+def auto_convert(custom_type, converter_function):
+    """
+    Register a custom type to be automatically converted to single coordinates or sequences of
+    coordinates, to be able to use them in the helper functions for map elements.
+    """
+    coords_converters[custom_type] = converter_function
 
 
 # types of things we can display on a map, with their attributes
