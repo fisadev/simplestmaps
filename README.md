@@ -1,6 +1,6 @@
 # Simplest Maps
 
-Super simple on-liner maps in python. 
+Super simple on-liner maps in python.
 
 # Installation
 
@@ -8,40 +8,33 @@ Super simple on-liner maps in python.
 
 # Usage
 
-All of its current features at once, in a single example:
-
-(I'll write better docs in the future :D)
+This lib aims to be super simple to use. For instance, to draw a markers and an area, you could do something like this:
 
 ```python
-from simplestmaps import draw_map, dot, marker, label, html, line, area, geojson
+from simplestmaps import draw_map, area, marker
 
 draw_map(
-    marker(0, -65),
-    marker(0, -55, popup="hello world!"),
-
-    dot(-5, -65),
-    dot(-5, -55, popup="hello world!", color="red", radius=10, opacity=0.5, border_color="green", border_width=2),
-
-    label(-10, -65, text="hi!"),
-    label(-10, -55, text="bye!", font="courier new", size=15, color="red", opacity=0.75),
-
-    html(10, -30, code="<ul><li>one</li><li>two</li></ul>", popup="custom html markers!"),
-
-    line([(0, 0), (0, 5), (4, 3), (1, -2)]),
-    line([(10, 0), (10, 5), (14, 3), (11, -2)], color="green", width=5, opacity=0.5, popup="hi!"),
-
-    area([(20, 0), (20, 5), (25, 10), (25, 0)]),
-    area([(30, 0), (30, 5), (35, 10), (35, 0)], color="green", opacity=0.2, border_color="red", border_width=2, popup="hi!"),
-
-    #geojson("./demo.geojson"),
-
-    geojson("./demo.geojson", 
-            points_as=label(text="X", color="red"), 
-            lines_as=line(color="green", width=5, popup="simple!"), 
-            areas_as=area(color="yellow", border_color="black")), 
+    marker(-31.2526, -61.4917, popup="my hometown"),
+    area([(-31.2741, -61.5105), (-31.2872, -61.5137), (-31.2895, -61.5003), (-31.2764, -61.4973)], color="green", popup="our airfield"),
 )
 ```
 
-Output:
+![example map](./readme_example1.png)
 
-![demo output](./demo_output.png)
+It can even do more advanced stuff, like plotting the contents of a geojson file (points, areas, lines):
+
+```python
+from simplestmaps import draw_map, geojson
+
+draw_map(
+    geojson("./demo.geojson"),
+)
+```
+
+![example map](./readme_example2.png)
+
+And every element plotted into the map is customizable (colors, fonts, sizes, etc).
+
+Here are a good set of examples that showcase (and document) all of the supported features:
+
+[Demo and docs! (TODO: pending link)](http://example.com)
