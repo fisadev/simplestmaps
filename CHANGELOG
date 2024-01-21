@@ -1,3 +1,10 @@
+# v1.2.0
+
+- Added feature to automatically convert custom types of objects to coordinates or sequences of 
+  coordinates, with the function `auto_convert`.
+- More docs about the auto conversion and map customization features.
+- Some internal small refactors for code reuse and readability.
+
 # v1.1.0
 
 - Added support for element sets with the new helpers: marker_set, dot_set, label_set, html_set, 
