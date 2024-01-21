@@ -1,5 +1,5 @@
 from collections import namedtuple
-from functools import partial
+from functools import partial, wraps
 from pathlib import Path
 from types import GeneratorType
 import json
@@ -180,6 +180,29 @@ def geojson(path_or_data, points_as=marker, lines_as=line, areas_as=area):
                     (raw_coords[1], raw_coords[0])
                     for raw_coords in raw_coords_sequence
                 )
+
+
+def pluralize(helper):
+    """
+    Make a helper able to work with multiple sources instead of just one.
+    Example: use the 'label' helper to create a new 'labels' helper, that works with multiple
+    points coordinates instead of just one point.
+    """
+    @wraps(helper)
+    def plural_helper(sources, **kwargs):
+        for source in sources:
+            yield helper(source, **kwargs)
+
+    return plural_helper
+
+
+marker_set = pluralize(marker)
+dot_set = pluralize(dot)
+label_set = pluralize(label)
+html_set = pluralize(html)
+line_set = pluralize(line)
+area_set = pluralize(area)
+geojson_set = pluralize(geojson)
 
 
 def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
