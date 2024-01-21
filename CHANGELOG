@@ -1,0 +1,17 @@
+# v1.1.0
+
+- Added support for element sets with the new helpers: marker_set, dot_set, label_set, html_set, 
+  line_set, area_set and geojson_set.
+- New and improved docs and examples.
+
+# v1.0.2
+
+- Hotfix: support for custom coordinates objects with known attributes was broken.
+
+# v1.0.1
+
+- Hotfix: package description was broken in PyPI.
+
+# v1.0.0
+
+- Initial version! Markers, dots, labels, htmls, areas, lines and geojsons supported.
