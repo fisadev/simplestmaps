@@ -37,4 +37,6 @@ And every element plotted into the map is customizable (colors, fonts, sizes, et
 
 Here are a good set of examples that showcase (and document) all of the supported features:
 
-[Demo and docs! (TODO: pending link)](http://example.com)
+# Demo and docs
+
+[See everything that's possible here! (TODO: pending link)](http://example.com)
