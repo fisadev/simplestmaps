@@ -1,5 +1,6 @@
 # Pending release
 
+- Added suppport for shapely geometries out of the box!
 - Fix: custom coordinates objects was broken for coordinates sequences in the "_set" helpers.
 
 # v1.2.0

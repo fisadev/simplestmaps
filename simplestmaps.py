@@ -318,3 +318,27 @@ def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
             ).add_to(map_)
 
     return map_
+
+
+# add shapely support if present
+try:
+    from shapely import (
+        Point as ShpPoint,
+        LineString as ShpLineString,
+        LinearRing as ShpLinearRing,
+        Polygon as ShpPolygon,
+        MultiPoint as ShpMultiPoint,
+        MultiPolygon as ShpMultiPolygon,
+        MultiLineString as ShpMultiLineString
+    )
+
+    auto_convert(ShpPoint, lambda p: (p.y, p.x))
+    auto_convert(ShpLineString, lambda ls: [(c[1], c[0]) for c in ls.coords])
+    auto_convert(ShpLinearRing, lambda ls: [(c[1], c[0]) for c in ls.coords])
+    auto_convert(ShpPolygon, lambda p: [(c[1], c[0]) for c in p.exterior.coords])
+    auto_convert(ShpMultiPoint, lambda mp: list(mp.geoms))
+    auto_convert(ShpMultiLineString, lambda mp: list(mp.geoms))
+    auto_convert(ShpMultiPolygon, lambda mp: list(mp.geoms))
+except ImportError:
+    # shapely not present, do nothing
+    pass
