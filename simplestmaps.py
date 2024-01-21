@@ -258,7 +258,7 @@ def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
             # things into the pending list
             things.extend(thing)
 
-        if isinstance(thing, Marker):
+        elif isinstance(thing, Marker):
             folium.Marker(
                 location=[thing.coords.lat, thing.coords.lon],
                 popup=thing.popup,
@@ -342,3 +342,6 @@ try:
 except ImportError:
     # shapely not present, do nothing
     pass
+
+
+# add satellogic's telluric support if present
