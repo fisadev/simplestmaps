@@ -7,44 +7,41 @@ import json
 import folium
 
 
-class Coords:
+Coords = namedtuple("Coords", "lat lon")
+
+
+def extract_coords(coords_source):
     """
-    A container of lat lon coordinates, which is also able to extract those values from any other
-    type of coordinates containing objects.
+    Extract lat lon coordinates from any possible known thing.
     """
-    def __init__(self, lat, lon):
-        self.lat = lat
-        self.lon = lon
+    if hasattr(coords_source, "lat") and hasattr(coords_source, "lon"):
+        # a few known classes that have lat long attributes
+        lat, lon = coords_source.lat, coords_source.lon
+    elif hasattr(coords_source, "latitude") and hasattr(coords_source, "longitude"):
+        # a few known classes that have latitude longitude attributes, like some common geo
+        # libs
+        lat, lon = coords_source.latitude, coords_source.longitude
+    elif hasattr(coords_source, "latitude_deg") and hasattr(coords_source, "longitude_deg"):
+        # a few known classes that have latitude_deg longitude_deg attributes, like the
+        # locations from the orbit-predictor lib
+        lat, lon = coords_source.latitude_deg, coords_source.longitude_deg
+    elif isinstance(coords_source, (tuple, list)) and len(coords_source) == 1:
+        return extract_coords(coords_source[0])
+    elif isinstance(coords_source, (tuple, list)) and len(coords_source) in (2, 3):
+            lat, lon = coords_source[:2]
+    else:
+        raise ValueError(
+            f"Can't guess the latitude and longitude from this object: {repr(coords_source)}"
+        )
 
-    def __repr__(self):
-        return f"Coords({self.lat}, {self.lon})"
+    return Coords(lat, lon)
 
-    @classmethod
-    def extract(cls, coords_source):
-        """
-        Extract lat lon coordinates from any possible known thing.
-        """
-        if hasattr(coords_source, "lat") and hasattr(coords_source, "lon"):
-            # a few known classes that have lat long attributes
-            lat, lon = coords_source.lat, coords_source.lon
-        elif hasattr(coords_source, "latitude") and hasattr(coords_source, "longitude"):
-            # a few known classes that have latitude longitude attributes, like some common geo
-            # libs
-            lat, lon = coords_source.latitude, coords_source.longitude
-        elif hasattr(coords_source, "latitude_deg") and hasattr(coords_source, "longitude_deg"):
-            # a few known classes that have latitude_deg longitude_deg attributes, like the
-            # locations from the orbit-predictor lib
-            lat, lon = coords_source.latitude_deg, coords_source.longitude_deg
-        elif isinstance(coords_source, (tuple, list)) and len(coords_source) == 1:
-            return Coords.extract(coords_source[0])
-        elif isinstance(coords_source, (tuple, list)) and len(coords_source) in (2, 3):
-                lat, lon = coords_source[:2]
-        else:
-            raise ValueError(
-                f"Can't guess the latitude and longitude from this object: {repr(coords_source)}"
-            )
 
-        return cls(lat, lon)
+def extract_coords_sequence(coords_sequence):
+    """
+    Extract a sequence of lat lon coordinates from any possible known thing.
+    """
+    return [extract_coords(coords) for coords in coords_sequence]
 
 
 # types of things we can display on a map, with their attributes
@@ -64,7 +61,7 @@ def marker(*coords, popup=None):
     if not coords:
         return partial(marker, popup=popup)
 
-    return Marker(Coords.extract(coords), popup)
+    return Marker(extract_coords(coords), popup)
 
 
 def dot(*coords, color="blue", radius=3, opacity=1, border_color=None, border_width=0, popup=None):
@@ -80,7 +77,7 @@ def dot(*coords, color="blue", radius=3, opacity=1, border_color=None, border_wi
     elif border_width == 0:
         border_width = 2
 
-    return Dot(Coords.extract(coords), color, radius, opacity, border_color, border_width, popup)
+    return Dot(extract_coords(coords), color, radius, opacity, border_color, border_width, popup)
 
 
 def label(*coords, text, color="blue", size=12, font="arial", opacity=1, popup=None):
@@ -91,7 +88,7 @@ def label(*coords, text, color="blue", size=12, font="arial", opacity=1, popup=N
         return partial(label, text=text, color=color, size=size, font=font, opacity=opacity,
                        popup=popup)
 
-    return Label(Coords.extract(coords), text, color, size, font, opacity, popup)
+    return Label(extract_coords(coords), text, color, size, font, opacity, popup)
 
 
 def html(*coords, code, popup=None):
@@ -101,7 +98,7 @@ def html(*coords, code, popup=None):
     if not coords:
         return partial(html, code=code, popup=popup)
 
-    return Html(Coords.extract(coords), code, popup)
+    return Html(extract_coords(coords), code, popup)
 
 
 def line(coords_sequence=None, color="blue", width=2, opacity=1, popup=None):
@@ -111,8 +108,7 @@ def line(coords_sequence=None, color="blue", width=2, opacity=1, popup=None):
     if not coords_sequence:
         return partial(line, color=color, width=width, opacity=opacity, popup=popup)
 
-    coords_sequence = [Coords.extract(coords) for coords in coords_sequence]
-    return Line(coords_sequence, color, width, opacity, popup)
+    return Line(extract_coords_sequence(coords_sequence), color, width, opacity, popup)
 
 
 def area(coords_sequence=None, color="blue", opacity=0.5, border_color=None, border_width=0,
@@ -129,8 +125,8 @@ def area(coords_sequence=None, color="blue", opacity=0.5, border_color=None, bor
     elif border_width == 0:
         border_width = 2
 
-    coords_sequence = [Coords.extract(coords) for coords in coords_sequence]
-    return Area(coords_sequence, color, opacity, border_color, border_width, popup)
+    return Area(extract_coords_sequence(coords_sequence), color, opacity, border_color,
+                border_width, popup)
 
 
 def geojson(path_or_data, points_as=marker, lines_as=line, areas_as=area):
@@ -215,7 +211,7 @@ def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
     - "cartodbpositron": white
     - "Stamen Terrain": terrain colors
     """
-    center = Coords.extract(center)
+    center = extract_coords(center)
 
     map_ = folium.Map(location=(center.lat, center.lon), zoom_start=zoom, attr=".", tiles=tiles)
 
