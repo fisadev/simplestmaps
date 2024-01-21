@@ -158,6 +158,7 @@ def geojson(path_or_data, points_as=marker, lines_as=line, areas_as=area):
                 "The provided geojson seems to contain invalid data (no 'type' key present):\n\n"
                 f"{repr(geojson_data)}"
             )
+
         elif geojson_type == "FeatureCollection":
             # a collection of features, extract them individually
             for feature in geojson_data["features"]:
