@@ -320,9 +320,9 @@ def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
     return map_
 
 
-# add shapely support if present
 try:
-    from shapely import (
+    # add shapely support if present
+    from shapely.geometry import (
         Point as ShpPoint,
         LineString as ShpLineString,
         LinearRing as ShpLinearRing,
