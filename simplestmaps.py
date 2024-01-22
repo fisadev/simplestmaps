@@ -344,4 +344,14 @@ except ImportError:
     pass
 
 
-# TODO add satellogic's telluric support if present
+try:
+    # add shapely support if present
+    # (https://telluric.readthedocs.io/en/latest/index.html)
+    from telluric import GeoVector, FeatureCollection, GeoFeature
+
+    auto_convert(GeoVector, lambda gv: gv.get_shape(gv.crs))
+    auto_convert(GeoFeature, lambda gf: gf.geometry)
+    auto_convert(FeatureCollection, lambda fc: fc.geometries)
+except ImportError:
+    # telluric not present, do nothing
+    pass
