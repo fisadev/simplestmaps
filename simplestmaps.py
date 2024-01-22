@@ -7,55 +7,66 @@ import json
 import folium
 
 
-Coords = namedtuple("Coords", "lat lon")
+Point = namedtuple("Point", "lat lon")
 
 # type -> converter function that receives instance of type and returns either a single (lat,lon)
 # tuple, or a sequence of (lat,lon) tuples
-coords_converters = {}
+converters = {}
 
 
-def extract_coords(coords_source):
+def all_numbers(sequence):
     """
-    Extract lat lon coordinates from any possible known thing.
+    Is a sequence composed of just numbers?
     """
-    if coords_source.__class__ in coords_converters:
-        # a custom type for which we have a converter registered, use it
-        converter = coords_converters[coords_source.__class__]
-        return extract_coords(converter(coords_source))
-    if hasattr(coords_source, "lat") and hasattr(coords_source, "lon"):
+    return all(
+        isinstance(x, (int, float)) and not isinstance(x, bool)
+        for x in sequence
+    )
+
+
+def to_points(source):
+    """
+    Convert any possible thing to lat lon points and/or sequences of points.
+    """
+    while source.__class__ in converters:
+        # a custom type for which we have a converter registered, use it before trying to extract
+        # points from it
+        source = converters[source.__class__](source)
+
+    if isinstance(source, GeneratorType):
+        # traverse the generator and build a tuple with its components, that we can inspect and
+        # parse (so we can do things like decide how to parse it based on its length and the types
+        # of its items)
+        return to_points(tuple(source))
+    elif hasattr(source, "lat") and hasattr(source, "lon"):
         # a few known classes that have lat long attributes
-        lat, lon = coords_source.lat, coords_source.lon
-    elif hasattr(coords_source, "latitude") and hasattr(coords_source, "longitude"):
+        lat, lon = source.lat, source.lon
+    elif hasattr(source, "latitude") and hasattr(source, "longitude"):
         # a few known classes that have latitude longitude attributes, like some common geo
         # libs
-        lat, lon = coords_source.latitude, coords_source.longitude
-    elif hasattr(coords_source, "latitude_deg") and hasattr(coords_source, "longitude_deg"):
+        lat, lon = source.latitude, source.longitude
+    elif hasattr(source, "latitude_deg") and hasattr(source, "longitude_deg"):
         # a few known classes that have latitude_deg longitude_deg attributes, like the
         # locations from the orbit-predictor lib
-        lat, lon = coords_source.latitude_deg, coords_source.longitude_deg
-    elif isinstance(coords_source, (tuple, list)) and len(coords_source) == 1:
-        return extract_coords(coords_source[0])
-    elif isinstance(coords_source, (tuple, list)) and len(coords_source) in (2, 3):
-            lat, lon = coords_source[:2]
+        lat, lon = source.latitude_deg, source.longitude_deg
+    elif isinstance(source, (tuple, list)):
+        if len(source) == 1:
+            # a sequence with a single object inside, so extract a point from it as if we just got
+            # that object alone
+            return to_points(source[0])
+        elif len(source) in (2, 3) and all_numbers(source):
+            # a sequence of 2 or 3 numbers, these must be coordinates, finally!
+            lat, lon = source[:2]
+        else:
+            # a sequence that doesn't look like coordinates but maybe a collection of points, try
+            # to extract all of them into a list
+            return [to_points(item) for item in source]
     else:
         raise ValueError(
-            f"Can't guess the latitude and longitude from this object: {repr(coords_source)}"
+            f"Can't guess the latitude and longitude from this object: {repr(source)}"
         )
 
-    return Coords(lat, lon)
-
-
-def extract_coords_sequence(coords_sequence):
-    """
-    Extract a sequence of lat lon coordinates from any possible known thing.
-    """
-    while coords_sequence.__class__ in coords_converters:
-        # a custom type from which we need to extract the coordinates sequence
-        converter = coords_converters[coords_sequence.__class__]
-        coords_sequence = converter(coords_sequence)
-
-    # a sequence from which we need to extract each coordinate
-    return [extract_coords(coords) for coords in coords_sequence]
+    return Point(lat, lon)
 
 
 def auto_convert(custom_type, converter_function):
@@ -63,34 +74,106 @@ def auto_convert(custom_type, converter_function):
     Register a custom type to be automatically converted to single coordinates or sequences of
     coordinates, to be able to use them in the helper functions for map elements.
     """
-    coords_converters[custom_type] = converter_function
+    converters[custom_type] = converter_function
 
 
 # types of things we can display on a map, with their attributes
-Marker = namedtuple("Marker", "coords popup")
-Dot = namedtuple("Dot", "coords color radius opacity border_color border_width popup")
-Label = namedtuple("Label", "coords text color size font opacity popup")
-Html = namedtuple("Html", "coords code popup")
-Line = namedtuple("Line", "coords_sequence color width opacity popup")
-Area = namedtuple("Area", "coords_sequence color opacity border_color border_width popup")
+Marker = namedtuple("Marker", "point popup")
+Dot = namedtuple("Dot", "point color radius opacity border_color border_width popup")
+Label = namedtuple("Label", "point text color size font opacity popup")
+Html = namedtuple("Html", "point code popup")
+Line = namedtuple("Line", "points_sequence color width opacity popup")
+Area = namedtuple("Area", "points_sequence color opacity border_color border_width popup")
 Geojson = namedtuple("Geojson", "path points_as lines_as areas_as")
 
 
-def marker(*coords, popup=None):
+def extract_single_points(points_source):
+    """
+    Extract and iterate over single points that might be part of point sequences, or even trees of
+    points.
+
+    This function assumes that points_source can contain only two types of things: Point instances,
+    or sequences (lists/tuples/generators) containing any of both.
+
+    Something like [[point_a], [point_b, point_c, point_d], [[[point_e]], point_f]]
+    Will yield all of the Point instances, one by one, in order.
+    """
+    pending = [points_source]
+    while pending:
+        current = pending.pop(0)
+
+        if isinstance(current, Point):
+            yield current
+        elif isinstance(current, (list, tuple, GeneratorType)):
+            pending.extend(current)
+
+
+def extract_points_sequences(points_source):
+    """
+    Extract and iterate over point sequences that might be themselves part of higher order
+    sequences, or even trees of sequences.
+
+    This function assumes that points_source can contain only two types of things: Point instances,
+    or sequences (lists/tuples/generators) containing any of both.
+
+    The only condition is that any sequence (list/tuple/generator) contains either all Point
+    instances, or all sequences. No mixing of the two element types inside the same sequence.
+
+    Something like [[point_a], [point_b, point_c, point_d], [[[point_e]]]]
+    Will yield three sequences:
+    [point_a]
+    [point_b, point_c, point_d]
+    [point_e]
+
+    While something like [point_a, [point_b, point_c]]
+    Will yield an error, as there's a sequence (the top level one) mixing types inside it.
+    """
+    pending = [points_source]
+    while pending:
+        current = pending.pop(0)
+
+        if isinstance(current, Point):
+            # we received a single point, not even in a sequence, just yield it as a sequence of
+            # one element
+            yield [current]
+        elif isinstance(current, (list, tuple, GeneratorType)):
+            # we have a sequence, but is it a sequence of points? or a sequence of other sequences?
+            if all(isinstance(item, Point) for item in current):
+                # current is a sequence of coords!
+                yield current
+            elif any(isinstance(item, Point) for item in current):
+                raise ValueError(
+                    f"There's a sequence mixing points and other kinds of objects: {repr(current)}"
+                )
+            else:
+                # a sequence of sequences, or a sequence of broken things. Add each item to the
+                # pending queue and deal with them when popped
+                pending.extend(current)
+        else:
+            raise ValueError(
+                f"Can't guess a sequence of coordinates from this object: {repr(current)}"
+            )
+
+
+def marker(*points_sources, popup=None):
     """
     Helper to easily build a Marker instance.
     """
-    if not coords:
+    if not points_sources:
         return partial(marker, popup=popup)
 
-    return Marker(extract_coords(coords), popup)
+    return [
+        Marker(point, popup)
+        for point in extract_single_points(to_points(points_sources))
+    ]
 
 
-def dot(*coords, color="blue", radius=3, opacity=1, border_color=None, border_width=0, popup=None):
+def dot(*points_sources, color="blue", radius=3, opacity=1, border_color=None, border_width=0,
+        popup=None):
     """
     Helper to easily build a Dot instance.
     """
-    if not coords:
+    if not points_sources:
         return partial(dot, color=color, radius=radius, opacity=opacity, border_color=border_color,
                        border_width=border_width, popup=popup)
 
@@ -99,46 +182,58 @@ def dot(*coords, color="blue", radius=3, opacity=1, border_color=None, border_wi
     elif border_width == 0:
         border_width = 2
 
-    return Dot(extract_coords(coords), color, radius, opacity, border_color, border_width, popup)
+    return [
+        Dot(point, color, radius, opacity, border_color, border_width, popup)
+        for point in extract_single_points(to_points(points_sources))
+    ]
 
 
-def label(*coords, text, color="blue", size=12, font="arial", opacity=1, popup=None):
+def label(*points_sources, text, color="blue", size=12, font="arial", opacity=1, popup=None):
     """
     Helper to easily build a Label instance.
     """
-    if not coords:
+    if not points_sources:
         return partial(label, text=text, color=color, size=size, font=font, opacity=opacity,
                        popup=popup)
 
-    return Label(extract_coords(coords), text, color, size, font, opacity, popup)
+    return [
+        Label(point, text, color, size, font, opacity, popup)
+        for point in extract_single_points(to_points(points_sources))
+    ]
 
 
-def html(*coords, code, popup=None):
+def html(*points_sources, code, popup=None):
     """
     Helper to easily build a Html instance.
     """
-    if not coords:
+    if not points_sources:
         return partial(html, code=code, popup=popup)
 
-    return Html(extract_coords(coords), code, popup)
+    return [
+        Html(point, code, popup)
+        for point in extract_single_points(to_points(points_sources))
+    ]
 
 
-def line(coords_sequence=None, color="blue", width=2, opacity=1, popup=None):
+def line(*points_sequences_sources, color="blue", width=2, opacity=1, popup=None):
     """
     Helper to easily build a Line instance.
     """
-    if coords_sequence is None:
+    if not points_sequences_sources:
         return partial(line, color=color, width=width, opacity=opacity, popup=popup)
 
-    return Line(extract_coords_sequence(coords_sequence), color, width, opacity, popup)
+    return [
+        Line(points_sequence, color, width, opacity, popup)
+        for points_sequence in extract_points_sequences(to_points(points_sequences_sources))
+    ]
 
 
-def area(coords_sequence=None, color="blue", opacity=0.5, border_color=None, border_width=0,
+def area(*points_sequences_sources, color="blue", opacity=0.5, border_color=None, border_width=0,
          popup=None):
     """
     Helper to easily build an Area instance.
     """
-    if coords_sequence is None:
+    if not points_sequences_sources:
         return partial(area, color=color, opacity=opacity, border_color=border_color,
                        border_width=border_width, popup=popup)
 
@@ -147,8 +242,10 @@ def area(coords_sequence=None, color="blue", opacity=0.5, border_color=None, bor
     elif border_width == 0:
         border_width = 2
 
-    return Area(extract_coords_sequence(coords_sequence), color, opacity, border_color,
-                border_width, popup)
+    return [
+        Area(points_sequence, color, opacity, border_color, border_width, popup)
+        for points_sequence in extract_points_sequences(to_points(points_sequences_sources))
+    ]
 
 
 def geojson(path_or_data, points_as=marker, lines_as=line, areas_as=area):
@@ -204,35 +301,6 @@ def geojson(path_or_data, points_as=marker, lines_as=line, areas_as=area):
                 )
 
 
-def pluralize(helper):
-    """
-    Make a helper able to work with multiple sources instead of just one.
-    Example: use the 'label' helper to create a new 'labels' helper, that works with multiple
-    points coordinates instead of just one point.
-    """
-    @wraps(helper)
-    def plural_helper(sources, **kwargs):
-        while sources.__class__ in coords_converters:
-            # a custom type from which we need to extract the coordinates sequence
-            converter = coords_converters[sources.__class__]
-            sources = converter(sources)
-
-        # a sequence from which we need to extract each coordinate
-        for source in sources:
-            yield helper(source, **kwargs)
-
-    return plural_helper
-
-
-marker_set = pluralize(marker)
-dot_set = pluralize(dot)
-label_set = pluralize(label)
-html_set = pluralize(html)
-line_set = pluralize(line)
-area_set = pluralize(area)
-geojson_set = pluralize(geojson)
-
-
 def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
     """
     Draw a simple map with elements on it. Good known working tiles with folium 0.14:
@@ -242,7 +310,7 @@ def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
     More info on tiles:
     https://python-visualization.github.io/folium/latest/user_guide/raster_layers/tiles.html
     """
-    center = extract_coords(center)
+    center = to_points(center)
 
     map_ = folium.Map(location=(center.lat, center.lon), zoom_start=zoom, attr=".", tiles=tiles)
 
@@ -260,13 +328,13 @@ def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
 
         if isinstance(thing, Marker):
             folium.Marker(
-                location=[thing.coords.lat, thing.coords.lon],
+                location=[thing.point.lat, thing.point.lon],
                 popup=thing.popup,
             ).add_to(map_)
 
         elif isinstance(thing, Dot):
             folium.CircleMarker(
-                location=[thing.coords.lat, thing.coords.lon],
+                location=[thing.point.lat, thing.point.lon],
                 radius=thing.radius,
                 color=thing.border_color,
                 weight=thing.border_width,
@@ -277,7 +345,7 @@ def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
 
         elif isinstance(thing, Label):
             folium.Marker(
-                location=[thing.coords.lat, thing.coords.lon],
+                location=[thing.point.lat, thing.point.lon],
                 icon=folium.DivIcon(html=f"""
                     <div style="font-family: {thing.font};
                                 font-size: {thing.size}px;
@@ -291,15 +359,15 @@ def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
 
         elif isinstance(thing, Html):
             folium.Marker(
-                location=[thing.coords.lat, thing.coords.lon],
+                location=[thing.point.lat, thing.point.lon],
                 icon=folium.DivIcon(html=thing.code),
                 popup=thing.popup,
             ).add_to(map_)
 
         elif isinstance(thing, Line):
             folium.PolyLine(
-                locations=[(coords.lat, coords.lon)
-                           for coords in thing.coords_sequence],
+                locations=[(point.lat, point.lon)
+                           for point in thing.points_sequence],
                 color=thing.color,
                 weight=thing.width,
                 opacity=thing.opacity,
@@ -308,8 +376,8 @@ def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
 
         elif isinstance(thing, Area):
             folium.Polygon(
-                locations=[(coords.lat, coords.lon)
-                           for coords in thing.coords_sequence],
+                locations=[(point.lat, point.lon)
+                           for point in thing.points_sequence],
                 color=thing.border_color,
                 weight=thing.border_width,
                 fill_color=thing.color,
