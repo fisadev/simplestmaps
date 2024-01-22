@@ -49,7 +49,7 @@ def extract_coords_sequence(coords_sequence):
     """
     Extract a sequence of lat lon coordinates from any possible known thing.
     """
-    if coords_sequence.__class__ in coords_converters:
+    while coords_sequence.__class__ in coords_converters:
         # a custom type from which we need to extract the coordinates sequence
         converter = coords_converters[coords_sequence.__class__]
         coords_sequence = converter(coords_sequence)
