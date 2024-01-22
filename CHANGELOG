@@ -1,3 +1,12 @@
+# Pending release
+
+- Fix: when converting sequences of coordinates, if the result is another type of object that needs
+  to be converted, keep converting them.
+- Fix: suppport older versions of shapely in which geometries can't be imported from the root 
+  package.
+- Fix: custom coordinates sequence objects that evaluate to False when treated as booleans, should
+  still be converted.
+
 # v1.3.0
 
 - Added suppport for shapely geometries out of the box!
