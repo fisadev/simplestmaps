@@ -1,4 +1,4 @@
-# Pending release
+# v1.4.0
 
 - Added support for Telluric geo features and geo vectors out of the box!
 - Fix: when converting sequences of coordinates, if the result is another type of object that needs
