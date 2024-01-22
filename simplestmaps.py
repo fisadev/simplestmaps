@@ -127,7 +127,7 @@ def line(coords_sequence=None, color="blue", width=2, opacity=1, popup=None):
     """
     Helper to easily build a Line instance.
     """
-    if not coords_sequence:
+    if coords_sequence is None:
         return partial(line, color=color, width=width, opacity=opacity, popup=popup)
 
     return Line(extract_coords_sequence(coords_sequence), color, width, opacity, popup)
@@ -138,7 +138,7 @@ def area(coords_sequence=None, color="blue", opacity=0.5, border_color=None, bor
     """
     Helper to easily build an Area instance.
     """
-    if not coords_sequence:
+    if coords_sequence is None:
         return partial(area, color=color, opacity=opacity, border_color=border_color,
                        border_width=border_width, popup=popup)
 
