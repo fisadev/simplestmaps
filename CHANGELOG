@@ -1,3 +1,7 @@
+# v1.6.0
+
+- Add support for multi polygons inside geojsons.
+
 # v1.5.0
 
 - No more _set helpers to work with element sets! (including internal refactor for readability)
