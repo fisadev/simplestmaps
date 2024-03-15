@@ -41,4 +41,4 @@ And every element plotted into the map is also customizable (colors, fonts, size
 
 Here are a good set of examples that showcase (and document) all of the supported features:
 
-## [Take a look at everything that's possible with so little code!](https://nbviewer.org/github/fisadev/simplestmaps/blob/e26f7cbe1eb195714f87e3804e766e302b7e51b5/demo_and_docs.ipynb)
+## [Take a look at everything that's possible with so little code!](https://simplestmaps.fisadev.com/)
