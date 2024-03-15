@@ -19,7 +19,7 @@ draw_map(
 )
 ```
 
-![example map](./readme_example1.png)
+![example map](./docs/readme_example1.png)
 
 It can even do more advanced stuff, like plotting the contents of a geojson file (points, areas, lines):
 
@@ -27,11 +27,11 @@ It can even do more advanced stuff, like plotting the contents of a geojson file
 from simplestmaps import draw_map, geojson
 
 draw_map(
-    geojson("./readme_example.geojson"),
+    geojson("./docs/readme_example.geojson"),
 )
 ```
 
-![example map](./readme_example2.png)
+![example map](./docs/readme_example2.png)
 
 SimplestMaps can plot markers, dots, labels (text), custom html, lines, areas and geojsons, and all of that can be combined in every map.
 
