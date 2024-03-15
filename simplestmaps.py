@@ -24,20 +24,25 @@ def all_numbers(sequence):
     )
 
 
-def to_points(source):
+def to_points(source, inverted_tuples=False):
     """
     Convert any possible thing to lat lon points and/or sequences of points.
+    Optionally reverse lat,lon values (used when converting points from lists of coordinates in
+    geojsons).
     """
     while source.__class__ in converters:
         # a custom type for which we have a converter registered, use it before trying to extract
         # points from it
         source = converters[source.__class__](source)
 
-    if isinstance(source, GeneratorType):
+    if isinstance(source, Point):
+        # don't re-convert things that are already points
+        return source
+    elif isinstance(source, GeneratorType):
         # traverse the generator and build a tuple with its components, that we can inspect and
         # parse (so we can do things like decide how to parse it based on its length and the types
         # of its items)
-        return to_points(tuple(source))
+        return to_points(tuple(source), inverted_tuples=inverted_tuples)
     elif hasattr(source, "lat") and hasattr(source, "lon"):
         # a few known classes that have lat long attributes
         lat, lon = source.lat, source.lon
@@ -53,14 +58,17 @@ def to_points(source):
         if len(source) == 1:
             # a sequence with a single object inside, so extract a point from it as if we just got
             # that object alone
-            return to_points(source[0])
+            return to_points(source[0], inverted_tuples=inverted_tuples)
         elif len(source) in (2, 3) and all_numbers(source):
             # a sequence of 2 or 3 numbers, these must be coordinates, finally!
-            lat, lon = source[:2]
+            if inverted_tuples:
+                lon, lat = source[:2]
+            else:
+                lat, lon = source[:2]
         else:
             # a sequence that doesn't look like coordinates but maybe a collection of points, try
             # to extract all of them into a list
-            return [to_points(item) for item in source]
+            return [to_points(item, inverted_tuples=inverted_tuples) for item in source]
     else:
         raise ValueError(
             f"Can't guess the latitude and longitude from this object: {repr(source)}"
@@ -278,27 +286,21 @@ def geojson(path_or_data, points_as=marker, lines_as=line, areas_as=area):
             # a collection of features, extract them individually
             for feature in geojson_data["features"]:
                 yield from geojson(feature["geometry"], points_as, lines_as, areas_as)
-
         elif geojson_type == "Point":
-            # geojson uses lon,lat instead of lat,lon
-            raw_coords = geojson_data["coordinates"]
-            yield points_as(raw_coords[1], raw_coords[0])
-
-        elif geojson_type == "LineString":
-            # geojson uses lon,lat instead of lat,lon
-            raw_coords_sequence = geojson_data["coordinates"]
-            yield lines_as(
-                (raw_coords[1], raw_coords[0])
-                for raw_coords in raw_coords_sequence
+            yield points_as(
+                extract_single_points(to_points(geojson_data["coordinates"],
+                                                inverted_tuples=True))
             )
-
-        elif geojson_type == "Polygon":
-            # geojson uses lon,lat instead of lat,lon. And polygons have lists of lists of coords
-            for raw_coords_sequence in geojson_data["coordinates"]:
-                yield areas_as(
-                    (raw_coords[1], raw_coords[0])
-                    for raw_coords in raw_coords_sequence
-                )
+        elif geojson_type == "LineString":
+            yield lines_as(
+                extract_points_sequences(to_points(geojson_data["coordinates"],
+                                                   inverted_tuples=True))
+            )
+        elif geojson_type in ("Polygon", "MultiPolygon"):
+            yield areas_as(
+                extract_points_sequences(to_points(geojson_data["coordinates"],
+                                                   inverted_tuples=True))
+            )
 
 
 def draw_map(*things, center=(0, 0), zoom=1.5, tiles="cartodbpositron"):
