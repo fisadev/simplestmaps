@@ -54,6 +54,10 @@ def to_points(source, inverted_tuples=False):
         # a few known classes that have latitude_deg longitude_deg attributes, like the
         # locations from the orbit-predictor lib
         lat, lon = source.latitude_deg, source.longitude_deg
+    elif source.__class__.__name__ == "Position" and hasattr(source, "position_llh"):
+        # a known class from the orbit-predictor lib, which has ECEF coordinates but can easily
+        # produce lat, lon, height coords
+        lat, lon, _ = source.position_llh
     elif isinstance(source, (tuple, list)):
         if len(source) == 1:
             # a sequence with a single object inside, so extract a point from it as if we just got
