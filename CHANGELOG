@@ -1,3 +1,7 @@
+# v1.7.0
+
+- Add native support for Position objects from Orbit-predictor.
+
 # v1.6.0
 
 - Add support for multi polygons inside geojsons.
